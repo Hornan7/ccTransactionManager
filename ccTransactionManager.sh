@@ -155,9 +155,9 @@ transaction_build_raw() {
       --tx-in ${HOT_NFT_UTXO} \
       --tx-in-script-file init-hot/nft.plutus \
       --tx-in-inline-datum-present \
-      --tx-in-redeemer-file vote/redeemer.json \
+      --tx-in-redeemer-file vote1/redeemer.json \
       --tx-in-execution-units "(3000000000, 4000000)" \
-      --tx-out "$(cat vote/value)" \
+      --tx-out "$(cat vote1/value)" \
       --tx-out-inline-datum-file vote/datum.json \
       --tx-out ${RETURN_ADDRESS}+${ORCHESTRATOR_ENDING_BALANCE} \
       --fee ${TRANSACTION_FEE} \
