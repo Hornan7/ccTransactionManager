@@ -146,7 +146,7 @@ transaction_build_raw() {
         read HOT_NFT_UTXO
         
     # Transaction Variables
-    ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $FEE))
+    ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $TRANSACTION_FEE))
 
     # Create transaction body file
     cardano-cli conway transaction build-raw \
@@ -159,7 +159,7 @@ transaction_build_raw() {
       --tx-in-execution-units "(3000000000, 4000000)" \
       --tx-out "$(cat vote/value)" \
       --tx-out-inline-datum-file vote/datum.json \
-      --tx-out "${RETURN_ADDRESS}+${ORCHESTRATOR_ENDING_BALANCE}" \
+      --tx-out ${RETURN_ADDRESS}+${ORCHESTRATOR_ENDING_BALANCE} \
       --fee ${TRANSACTION_FEE} \
       --protocol-params-file pparams.json \
       $(for i in $(seq 1 $NUM_VOTERS); do echo "--required-signer-hash $VOTERHASH$i "; done) \
