@@ -1,14 +1,20 @@
 #!/bin/bash
 
-# REQUIREMENTS:
-# This script needs to be used only within the nix shell of the orchestrator-cli.
-# Make sure to query your hot Constitutional Committee credential NFT UTXO and your payment address UTXO prior to using this script.
-# Also, make sure to query the protocol parameters prior to using this script.
+############################################################################################################
+# IMPORTANT REQUIREMENTS:                                                                                  #
+# Ensure this script is executed within the nix shell environment of the orchestrator-cli.                 #
+# It is crucial to run this script from your credential manager directory.                                 #
+# Before using this script, verify that you have your CC hot credential UTXO and your payment address UTXO.#
+# Compatibility is limited to cardano-cli version 9.4.1.0 or later.                                        #
+# It is essential to modify these variables and ensure the script is executable.                           #
+############################################################################################################
 
-# Variables that can be changed
-FEE=1000000
-nft_datum_file_path="./hot-nft.utxo"
-protocol_parameters_file_path="./protocol.json"
+TRANSACTION_FEE=1000000     # Set the transaction fee in Lovelace that you are willing to pay, ensuring it's not too low.
+RETURN_ADDRESS="changeMe"   # Specify the change address for your transaction.
+
+################################################################################
+# Do not change anything below this line                                       #
+################################################################################
 
 # Variables that cannot be changed
 WIDTH=$(tput cols)
@@ -41,7 +47,13 @@ NC='\033[0m'
 # Voter Hashes Management
 declare -A VOTERHASHES
 
-# Function to save voter hashes to a file
+# Check if the main variables have been modified.
+if [ "$RETURN_ADDRESS" == "changeMe" ]; then
+  echo -e "${RED}Please ensure you have modified the RETURN_ADDRESS variable before running this script.${NC}"
+  exit 1
+fi
+
+# Function to save voter hashes to a configuration file
 save_voterhashes() {
   echo "NUM_VOTERS=$NUM_VOTERS" >> voterhashes.conf
   for key in "${!VOTERHASHES[@]}"; do
@@ -52,34 +64,34 @@ save_voterhashes() {
 # Load the voterhashes.conf file if it exists, otherwise prompt the user to create it.
 voterhash_verif() {
   if [ -f "voterhashes.conf" ]; then
-    echo "Do you want to keep the default required signers for your transaction(s)? (yes/no)"
+    echo -e "${GREEN}Do you want to keep the default required signers for your transaction(s)? (yes/no)${NC}"
     read SAME_SIGNERS
     if [ "$SAME_SIGNERS" == "yes" ]; then
       source voterhashes.conf
     else
       if [ "$SAME_SIGNERS" == "no" ]; then
         rm voterhashes.conf > /dev/null 2>&1
-        echo "Enter the number of voter verification key hashes to configure as required signers."
+        echo -e "${YELLOW}Enter the number of voter verification key hashes to configure as required signers.${NC}"
         read NUM_VOTERS
 
         for ((i=1; i<=NUM_VOTERS; i++)); do
-          echo "Enter VOTERHASH$i:"
+          echo -e "${MAGENTA}Enter VOTERHASH$i:${NC}"
           read CREATE_HASH
           VOTERHASHES["VOTERHASH$i"]=$CREATE_HASH
         done
 
         save_voterhashes
       else
-        echo "Invalid input. Please answer 'yes' or 'no'."
+        echo -e "${RED}Invalid input. Please answer 'yes' or 'no'.${NC}"
         exit 1
       fi
     fi
   else
-    echo "voterhashes.conf not found. Enter the number of voter verification key hashes to configure as required signers."
+    echo -e "${CYAN}voterhashes.conf not found. Enter the number of voter verification key hashes to configure as required signers.${NC}"
     read NUM_VOTERS
 
     for ((i=1; i<=NUM_VOTERS; i++)); do
-      echo "Enter VOTERHASH$i:"
+      echo -e "${WHITE}Enter VOTERHASH$i:${NC}"
       read CREATE_HASH
       VOTERHASHES["VOTERHASH$i"]=$CREATE_HASH
     done
@@ -90,24 +102,24 @@ voterhash_verif() {
 
 # Create the vote file(s)
 vote_file_creation() {
-    echo -e "How many governance actions would you like to vote on?"
+    echo -e "${GREEN}How many governance actions would you like to vote on?${NC}"
     read NUM_ACTIONS
 
     for ((i=1; i<=NUM_ACTIONS; i++)); do
-        echo -e "What is the governance action ID for action $i?"
+        echo -e "${CYAN}What is the governance action ID for action $i?${NC}"
         read GOV_ID
         while true; do
-            echo -e "What is your vote for action $i? (yes, no, abstain)"
+            echo -e "${YELLOW}What is your vote for action $i? (yes, no, abstain)${NC}"
             read VOTE
             if [[ "$VOTE" == "yes" || "$VOTE" == "no" || "$VOTE" == "abstain" ]]; then
                 break
             else
-                echo -e "Invalid vote option."
+                echo -e "${RED}Invalid vote option.${NC}"
             fi
         done
-        echo -e "What is your anchor URL for action $i?"
+        echo -e "${MAGENTA}What is your anchor URL for action $i?${NC}"
         read METADATA_URL
-        echo -e "What is the hash of your anchor file for action $i?"
+        echo -e "${WHITE}What is the hash of your anchor file for action $i?${NC}"
         read METADATA_HASH
 
         orchestrator-cli vote \
@@ -124,30 +136,31 @@ vote_file_creation() {
 
 transaction_build_raw() {
     # Transaction prompts
-        echo -e "What is the payment UTXO you want to spend for your transaction?"
+        echo -e "${GREEN}What is the payment UTXO you want to spend for your transaction?${NC}"
         read PAYMENT_UTXO
-        echo -e "What is the amount of LOVELACE in that UTXO?"
+        echo -e "${YELLOW}What is the amount of LOVELACE in that UTXO?${NC}"
         read ORCHESTRATOR_STARTING_BALANCE
-        echo -e "Which UTXO do you want to use as collateral to run your script?"
+        echo -e "${CYAN}Which UTXO do you want to use as collateral to run your script?${NC}"
         read COLLATERAL_UTXO
+        echo -e "${MAGENTA}What is your NFT.addr UTXO?${NC}"
+        read HOT_NFT_UTXO
         
     # Transaction Variables
     ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $FEE))
 
-    # TODO: create a variable to store the --required-signer-hash options according to the number of VOTERHASH variables populated.
     # Create transaction body file
     cardano-cli conway transaction build-raw \
       --tx-in "${PAYMENT_UTXO}" \
       --tx-in-collateral "${COLLATERAL_UTXO}" \
-      --tx-in $(jq -r 'keys[0]' hot-nft-utxo) \
+      --tx-in ${HOT_NFT_UTXO} \
       --tx-in-script-file init-hot/nft.plutus \
       --tx-in-inline-datum-present \
       --tx-in-redeemer-file vote/redeemer.json \
       --tx-in-execution-units "(3000000000, 4000000)" \
       --tx-out "$(cat vote/value)" \
       --tx-out-inline-datum-file vote/datum.json \
-      --tx-out "$(cat withdraw.addr)+$ORCHESTRATOR_ENDING_BALANCE" \
-      --fee $FEE \
+      --tx-out "${RETURN_ADDRESS}+${ORCHESTRATOR_ENDING_BALANCE}" \
+      --fee ${TRANSACTION_FEE} \
       --protocol-params-file pparams.json \
       $(for i in $(seq 1 $NUM_VOTERS); do echo "--required-signer-hash $VOTERHASH$i "; done) \
       $(for i in $(seq 1 $NUM_ACTIONS); do echo "--vote-file vote$i/vote "; done) \
@@ -155,30 +168,6 @@ transaction_build_raw() {
       --vote-redeemer-value {} \
       --vote-execution-units "(6000000000,4000000)" \
       --out-file body.json
-    
-    # Final prompt
-    echo -e "Do you wish to vote on another governance action? (yes,no)"
-    read AWNSER
-    while true; do
-        if [ "$AWNSWER" == "yes" || "Yes"]; then
-          # Queries and modify the nft utxo
-          TXID=$(cardano-cli conway transaction txid --tx-body-file vote/body${VOTE_NUMBER}.json)
-          PAYMENT_UTXO="${TXID}#1"
-          nftutxo="${TXID}#0"
-          # Modify the NFT.addr utxo into a "temp file" and if there is no errors, replace the main one with the temp file.
-          jq --arg new_key "$nftutxo" 'to_entries | .[0].key = $new_key | from_entries' "$nft__datum_file_path" > tmp.json && mv tmp.json "$nft__datum_file_path"
-          VOTE_NUMBER=$((VOTE_NUMBER+1)) 
-          ORCHESTRATOR_STARTING_BALANCE=${ORCHESTRATOR_ENDING_BALANCE}
-          vote_file_creation
-          transaction_build
-        else
-          # Ziping body files to sign
-
-
-          break
-        fi
-    done
-
 }
 
 # Print a pretty image of Grace!
@@ -218,9 +207,9 @@ ${PADDING}    !@@@@@@@@@@@@@@@@@@@B!             ${WHITE}.@@@@@@.${CYAN}  #@@@B!
 ${PADDING}      ?#@@@@@@@@@@@@@@P:                ${WHITE}^@@@@@G${CYAN}  :&P:              7&@@@@@@@@@@@@@&P:
 ${PADDING}        .^75GB####GY~                    ${WHITE}.5B###:${CYAN}                     :?PB####BPJ~.
 ${PADDING}
-${PADDING}            ${WHITE}  #############################################################
-${PADDING}              #            Welcome to the CAC offline scripts             #
-${PADDING}              #############################################################
+${PADDING}          ${WHITE}  ################################################################
+${PADDING}            #            Welcome to the CAC offline voter script           #
+${PADDING}            ################################################################
 ${NC}"
 else
   if [ "$WIDTH" -gt 63 ]; then
@@ -251,15 +240,15 @@ ${PADDING}@@@@@@@@@@B!             ${WHITE}.@@@@@@.${CYAN}  #@@@B!.        :5@@@
 ${PADDING}@@@@@@@@P:                ${WHITE}^@@@@@G${CYAN}  :&P:              7&@@@@@@@@
 ${PADDING}####GY~                    ${WHITE}.5B###:${CYAN}                     :?PB####
 ${PADDING}
-${PADDING}${BRIGHTWHITE}  ##########################################################
-${PADDING}  #          Welcome to the CAC offline scripts            #
-${PADDING}  ##########################################################
+${PADDING}${BRIGHTWHITE}  #############################################################
+${PADDING}  #          Welcome to the CAC offline voter script          #
+${PADDING}  #############################################################
 ${NC}"
     else
       echo -e "${BRIGHTWHITE}
-###################################################
-#       Welcome to the CAC offline scripts        #
-###################################################
+######################################################
+#       Welcome to the CAC offline voter script      #
+######################################################
 ${NC}"
     fi
   fi
