@@ -77,7 +77,7 @@ voterhash_verif() {
         done
 
         save_voterhashes
-      else
+      elif [ "$SAME_SIGNERS" != "yes" ]; then
         echo -e "${RED}Invalid input. Please answer 'yes' or 'no'.${NC}"
         exit 1
       fi
