@@ -55,9 +55,8 @@ fi
 
 # Function to save voter hashes to a configuration file
 save_voterhashes() {
-  echo "NUM_VOTERS=$NUM_VOTERS" >> voterhashes.conf
   for key in "${!VOTERHASHES[@]}"; do
-    echo "$key=${VOTERHASHES[$key]}" >> voterhashes.conf
+    echo "--required-signer-hash ${VOTERHASHES[$key]}" >> voterhashes.conf
   done
 }
 
@@ -66,9 +65,6 @@ voterhash_verif() {
   if [ -f "voterhashes.conf" ]; then
     echo -e "${GREEN}Do you want to keep the default required signers for your transaction(s)? (yes/no)${NC}"
     read SAME_SIGNERS
-    if [ "$SAME_SIGNERS" == "yes" ]; then
-      source voterhashes.conf
-    else
       if [ "$SAME_SIGNERS" == "no" ]; then
         rm voterhashes.conf > /dev/null 2>&1
         echo -e "${YELLOW}Enter the number of voter verification key hashes to configure as required signers.${NC}"
@@ -85,7 +81,6 @@ voterhash_verif() {
         echo -e "${RED}Invalid input. Please answer 'yes' or 'no'.${NC}"
         exit 1
       fi
-    fi
   else
     echo -e "${CYAN}voterhashes.conf not found. Enter the number of voter verification key hashes to configure as required signers.${NC}"
     read NUM_VOTERS
@@ -162,7 +157,7 @@ transaction_build_raw() {
       --tx-out "${RETURN_ADDRESS}+${ORCHESTRATOR_ENDING_BALANCE}" \
       --fee ${TRANSACTION_FEE} \
       --protocol-params-file pparams.json \
-      $(for i in $(seq 1 $NUM_VOTERS); do eval "echo \"--required-signer-hash \${VOTERHASH$i}\"") \
+      $(cat voterhashes.conf) \
       $(for i in $(seq 1 $NUM_ACTIONS); do echo "--vote-file vote$i/vote "; done) \
       --vote-script-file init-hot/credential.plutus \
       --vote-redeemer-value {} \
