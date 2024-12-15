@@ -153,7 +153,7 @@ transaction_build_raw() {
       --tx-in-redeemer-file vote1/redeemer.json \
       --tx-in-execution-units "(3000000000, 4000000)" \
       --tx-out "$(cat vote1/value)" \
-      --tx-out-inline-datum-file vote/datum.json \
+      --tx-out-inline-datum-file vote1/datum.json \
       --tx-out "${RETURN_ADDRESS}+${ORCHESTRATOR_ENDING_BALANCE}" \
       --fee ${TRANSACTION_FEE} \
       --protocol-params-file pparams.json \
