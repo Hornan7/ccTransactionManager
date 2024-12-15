@@ -146,7 +146,7 @@ transaction_build_raw() {
         read HOT_NFT_UTXO
         
     # Transaction Variables
-    ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $FEE))
+    ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $TRANSACTION_FEE))
 
     # Create transaction body file
     cardano-cli conway transaction build-raw \
