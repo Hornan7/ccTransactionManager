@@ -10,7 +10,7 @@
 ############################################################################################################
 
 TRANSACTION_FEE=1000000     # Set the transaction fee in Lovelace that you are willing to pay, ensuring it's not too low.
-RETURN_ADDRESS="addr"   # Specify the change address for your transaction.
+RETURN_ADDRESS="addr_test1qrc0kv6d4pak3wxrn3z20ve60wmasejz8d8wvnfctkly6utjp08qsnxanjjunmsn56g99gjt2vp34wn8yk88wlj9eups36hrp0"   # Specify the change address for your transaction.
 
 ################################################################################
 # Do not change anything below this line                                       #
@@ -56,7 +56,7 @@ fi
 # Function to save voter hashes to a configuration file
 save_voterhashes() {
   for key in "${!VOTERHASHES[@]}"; do
-    echo "--required-signer-hash ${VOTERHASHES[$key]}" >> voterhashes.conf
+    echo "--required-signer-hash ${VOTERHASHES[$key]} " >> voterhashes.conf
   done
 }
 
@@ -126,6 +126,9 @@ vote_file_creation() {
           --metadata-url ${METADATA_URL} \
           --metadata-hash ${METADATA_HASH} \
           --out-dir vote$i
+          
+	  echo "--vote-file vote$i/vote " >> vote.txt
+
     done
 }
 
@@ -143,7 +146,32 @@ transaction_build_raw() {
     # Transaction Variables
     ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $TRANSACTION_FEE))
 
-    # Create transaction body file
+    # Create transaction draft
+    cardano-cli conway transaction build-raw \
+      --tx-in "${PAYMENT_UTXO}" \
+      --tx-in-collateral "${COLLATERAL_UTXO}" \
+      --tx-in ${HOT_NFT_UTXO} \
+      --tx-in-script-file init-hot/nft.plutus \
+      --tx-in-inline-datum-present \
+      --tx-in-redeemer-file vote1/redeemer.json \
+      --tx-in-execution-units "(3000000000, 4000000)" \
+      --tx-out "$(cat vote1/value)" \
+      --tx-out-inline-datum-file vote1/datum.json \
+      --tx-out ${RETURN_ADDRESS}+${ORCHESTRATOR_ENDING_BALANCE} \
+      --fee ${TRANSACTION_FEE} \
+      --protocol-params-file pparams.json \
+      $(cat voterhashes.conf) \
+      $(cat vote.txt) \
+      --vote-script-file init-hot/credential.plutus \
+      --vote-redeemer-value {} \
+      --vote-execution-units "(6000000000,4000000)" \
+      --out-file body.json
+
+    # Recalculate the fees
+    TRANSACTION_FEE=$(cardano-cli conway transaction calculate-min-fee --tx-body-file body.json --witness-count 2 --protocol-params-file pparams.json | grep -o '[0-9]\+')
+    ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $TRANSACTION_FEE))
+
+    # create final transaction
     cardano-cli conway transaction build-raw \
       --tx-in "${PAYMENT_UTXO}" \
       --tx-in-collateral "${COLLATERAL_UTXO}" \
@@ -158,11 +186,13 @@ transaction_build_raw() {
       --fee ${TRANSACTION_FEE} \
       --protocol-params-file pparams.json \
       $(cat voterhashes.conf) \
-      $(for i in $(seq 1 $NUM_ACTIONS); do echo "--vote-file vote$i/vote "; done) \
+      $(cat vote.txt) \
       --vote-script-file init-hot/credential.plutus \
       --vote-redeemer-value {} \
       --vote-execution-units "(6000000000,4000000)" \
       --out-file body.json
+
+      rm vote.txt > /dev/null 2>&1
 }
 
 # Print a pretty image of Grace!
