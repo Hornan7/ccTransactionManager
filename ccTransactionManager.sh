@@ -10,7 +10,7 @@
 ############################################################################################################
 
 TRANSACTION_FEE=1000000     # Set the transaction fee in Lovelace that you are willing to pay, ensuring it's not too low.
-RETURN_ADDRESS="addr_test1qrc0kv6d4pak3wxrn3z20ve60wmasejz8d8wvnfctkly6utjp08qsnxanjjunmsn56g99gjt2vp34wn8yk88wlj9eups36hrp0"   # Specify the change address for your transaction.
+RETURN_ADDRESS="changeMe"   # Specify the change address for your transaction.
 
 ################################################################################
 # Do not change anything below this line                                       #
