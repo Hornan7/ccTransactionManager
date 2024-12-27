@@ -4,12 +4,11 @@
 # IMPORTANT REQUIREMENTS:                                                                                  #
 # Ensure this script is executed within the nix shell environment of the orchestrator-cli.                 #
 # It is crucial to run this script from your credential manager directory.                                 #
-# Before using this script, verify that you have your CC hot credential UTXO and your payment address UTXO.#
+# Before using this script, verify that you have your hot NFT UTXO and your payment UTXOs.                 #
 # Compatibility is limited to cardano-cli version 9.4.1.0 or later.                                        #
-# It is essential to modify these variables and ensure the script is executable.                           #
+# It is essential to modify the RETURN_ADDRESS variable and ensure the script is executable.               #
 ############################################################################################################
 
-TRANSACTION_FEE=1000000     # Set the transaction fee in Lovelace that you are willing to pay, ensuring it's not too low.
 RETURN_ADDRESS="changeMe"   # Specify the change address for your transaction.
 
 ################################################################################
@@ -46,6 +45,29 @@ NC='\033[0m'
 
 # Voter Hashes Management
 declare -A VOTERHASHES
+
+# Function to display help information
+show_help() {
+    echo -e "${CYAN}Usage: ./ccTransactionManager${NC}"
+    echo ""
+    echo -e "${YELLOW}Important: This script must be used offline to ensure the security of your transactions.${NC}"
+    echo -e "${GREEN}To use this script, you will need to provide the following information:${NC}"
+    echo -e "  - ${WHITE}RETURN_ADDRESS variable (must be changed in the script to your wallet address for the transaction)${NC}"
+    echo -e "  - ${WHITE}Payment UTXO you want to spend with its index${NC}"
+    echo -e "  - ${WHITE}Collateral UTXO for the Plutus script with its index${NC}"
+    echo -e "  - ${WHITE}Hot NFT UTXO with its index${NC}"
+    echo -e "  - ${WHITE}Governance action ID(s) for voting${NC}"
+    echo -e "  - ${WHITE}Anchor URL(s) for the governance action(s)${NC}"
+    echo -e "  - ${WHITE}Anchor hash(es) for the governance action(s)${NC}"
+    echo ""
+    echo -e "${RED}Please ensure all required information is provided before running the script.${NC}"
+}
+
+# Check for help option
+if [[ "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
 
 # Check if the main variables have been modified.
 if [ "$RETURN_ADDRESS" == "changeMe" ]; then
@@ -99,10 +121,12 @@ voterhash_verif() {
 vote_file_creation() {
     echo -e "${GREEN}How many governance actions would you like to vote on?${NC}"
     read NUM_ACTIONS
+    echo
 
     for ((i=1; i<=NUM_ACTIONS; i++)); do
         echo -e "${CYAN}What is the governance action ID for action $i?${NC}"
         read GOV_ID
+        echo
         while true; do
             echo -e "${YELLOW}What is your vote for action $i? (yes, no, abstain)${NC}"
             read VOTE
@@ -112,10 +136,13 @@ vote_file_creation() {
                 echo -e "${RED}Invalid vote option.${NC}"
             fi
         done
+        echo
         echo -e "${MAGENTA}What is your anchor URL for action $i?${NC}"
         read METADATA_URL
+        echo
         echo -e "${WHITE}What is the hash of your anchor file for action $i?${NC}"
         read METADATA_HASH
+        echo
 
         orchestrator-cli vote \
           --utxo-file hot-nft.utxo \
@@ -136,14 +163,18 @@ transaction_build_raw() {
     # Transaction prompts
         echo -e "${GREEN}What is the payment UTXO you want to spend for your transaction?${NC}"
         read PAYMENT_UTXO
+        echo
         echo -e "${YELLOW}What is the amount of LOVELACE in that UTXO?${NC}"
         read ORCHESTRATOR_STARTING_BALANCE
+        echo
         echo -e "${CYAN}Which UTXO do you want to use as collateral to run your script?${NC}"
         read COLLATERAL_UTXO
+        echo
         echo -e "${MAGENTA}What is your NFT.addr UTXO?${NC}"
         read HOT_NFT_UTXO
         
     # Transaction Variables
+    TRANSACTION_FEE=1000000 
     ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $TRANSACTION_FEE))
 
     # Create transaction draft
