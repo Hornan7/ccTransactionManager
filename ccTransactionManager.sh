@@ -35,9 +35,9 @@ CYAN='\033[0;36m'
 WHITE='\033[0;37m'
 #BRIGHTBLACK='\033[0;30;1m'
 #BRIGHTRED='\033[0;31;1m'
-#BRIGHTGREEN='\033[0;32;1m'
-#BRIGHTYELLOW='\033[0;33;1m'
-#BRIGHTBLUE='\033[0;34;1m'
+BRIGHTGREEN='\033[0;32;1m'
+BRIGHTYELLOW='\033[0;33;1m'
+BRIGHTBLUE='\033[0;34;1m'
 #BRIGHTMAGENTA='\033[0;35;1m'
 #BRIGHTCYAN='\033[0;36;1m'
 BRIGHTWHITE='\033[0;37;1m'
@@ -50,8 +50,8 @@ declare -A VOTERHASHES
 show_help() {
     echo -e "${CYAN}Usage: ./ccTransactionManager${NC}"
     echo ""
-    echo -e "${YELLOW}Important: This script must be used offline to ensure the security of your transactions.${NC}"
-    echo -e "${GREEN}To use this script, you will need to provide the following information:${NC}"
+    echo -e "${BRIGHTYELLOW}Important: This script must be used offline to ensure the security of your transactions.${NC}"
+    echo -e "${BRIGHTGREEN}To use this script, you will need to provide the following information:${NC}"
     echo -e "  - ${WHITE}RETURN_ADDRESS variable (must be changed in the script to your wallet address for the transaction)${NC}"
     echo -e "  - ${WHITE}Payment UTXO you want to spend with its index${NC}"
     echo -e "  - ${WHITE}Collateral UTXO for the Plutus script with its index${NC}"
@@ -60,7 +60,7 @@ show_help() {
     echo -e "  - ${WHITE}Anchor URL(s) for the governance action(s)${NC}"
     echo -e "  - ${WHITE}Anchor hash(es) for the governance action(s)${NC}"
     echo ""
-    echo -e "${RED}Please ensure all required information is provided before running the script.${NC}"
+    echo -e "${BRIGHTGREEN}Please ensure all required information is provided before running the script.${NC}"
 }
 
 # Check for help option
@@ -124,11 +124,12 @@ vote_file_creation() {
     echo
 
     for ((i=1; i<=NUM_ACTIONS; i++)); do
+        echo -e "${BRIGHTBLUE}------------------------------------------------------------------${NC}"
         echo -e "${CYAN}What is the governance action ID for action $i?${NC}"
         read GOV_ID
         echo
         while true; do
-            echo -e "${YELLOW}What is your vote for action $i? (yes, no, abstain)${NC}"
+            echo -e "${BRIGHTYELLOW}What is your vote for action $i? (yes, no, abstain)${NC}"
             read VOTE
             if [[ "$VOTE" == "yes" || "$VOTE" == "no" || "$VOTE" == "abstain" ]]; then
                 break
@@ -140,8 +141,9 @@ vote_file_creation() {
         echo -e "${MAGENTA}What is your anchor URL for action $i?${NC}"
         read METADATA_URL
         echo
-        echo -e "${WHITE}What is the hash of your anchor file for action $i?${NC}"
+        echo -e "${MAGENTA}What is the hash of your anchor file for action $i?${NC}"
         read METADATA_HASH
+	echo -e "${BRIGHTBLUE}------------------------------------------------------------------${NC}"
         echo
 
         orchestrator-cli vote \
