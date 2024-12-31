@@ -226,7 +226,9 @@ transaction_build_raw() {
       --out-file body.json
 
       rm vote.txt > /dev/null 2>&1
-}
+	echo -e "${BRIGHTBLUE}------------------------------------------------------------------${NC}"
+ 	echo -e "${GREEN}The transaction ${BRIGHTYELLOW}body.json ${GREEN}file is ready! You can now share it to the voters and ask for their signatures.${NC}"
+ }
 
 # Print a pretty image of Grace!
 generate_image() {
